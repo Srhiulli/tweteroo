@@ -2,59 +2,55 @@ const express = require('express');
 const app = express();
 const port = 3000;
 
-let tweets = []
-let users = []
-let avatar = 'https://i.pravatar.cc/300'
+let tweets = [];
+let users = [];
+let avatar = 'https://i.pravatar.cc/300';
 
 app.use(express.json());
 
-app.get('/', (req, res) => {
+app.get('/', (req, res) => {  
   res.send('Hello World!');
 });
 
-app.post('/sign-up', (req, res)=> {
-const {username} = req.body;
-if (!username ) {
-  return res.status(400).json({
-    message: "Todos os campos são obrigatórios!"
-  });
-}
-users.push({ username, avatar });
-console.log('Usuários:', users);
-res.status(200).json({
-  message: "Cadastro feito com sucesso!", 
-  user:{
-    username,
-    avatar
-  }});
-})
+app.post('/sign-up', (req, res) => {
+  const { username } = req.body;
+  if (!username) {
+    return res.status(400).json({
+      message: "Todos os campos são obrigatórios!"
+    });
+  }
+  users.push({ username, avatar });
+  console.log('Usuários', users);
+  res.status(200).send('OK');
+});
 
-app.post('/tweets', (req, res)=> {
-  const {username, tweet} = req.body;
+app.post('/tweets', (req, res) => {
+  const { username, tweet } = req.body;
   if (!username || !tweet) {
     return res.status(400).json({
       message: "Todos os campos são obrigatórios!"
     });
   }
-  tweets.push({ 
-    username, 
-    avatar: users.avatar, 
-    tweet 
-});
-console.log('tweets:', tweets);
+  function getUserAvatar(username) {
+    return users.find(user => user.username === username);
+  }
+  const userAvatar = getUserAvatar(username);
 
-  res.status(200).json({
-    message: "tweet enviado com sucesso!", 
-    tweet:{
-      username,
-      tweet, 
-      avatar
-    }});
-  })
+
+  tweets.push({
+    username,
+    avatar: userAvatar.avatar, 
+    tweet
+  });
+  console.log('tweets:', tweets);
+  res.status(200).send('OK');
+});
+
+app.get('/tweets', (req, res) => { 
+  const lastTenTweets = tweets.slice(-10); 
+  res.send(lastTenTweets);
+});
 
 app.listen(port, () => {
   console.log(`App running at http://localhost:${port}`);
 });
-
-
-console.log(tweets, users);
