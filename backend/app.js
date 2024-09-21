@@ -4,7 +4,6 @@ const port = 3000;
 
 let tweets = [];
 let users = [];
-let avatar = 'https://i.pravatar.cc/300';
 
 app.use(express.json());
 
@@ -13,14 +12,13 @@ app.get('/', (req, res) => {
 });
 
 app.post('/sign-up', (req, res) => {
-  const { username } = req.body;
-  if (!username) {
+  const { username, avatar } = req.body;
+  if (!username || !avatar) {
     return res.status(400).json({
       message: "Todos os campos são obrigatórios!"
     });
   }
   users.push({ username, avatar });
-  console.log('Usuários', users);
   res.status(200).send('OK');
 });
 
@@ -42,7 +40,6 @@ app.post('/tweets', (req, res) => {
     avatar: userAvatar.avatar, 
     tweet
   });
-  console.log('tweets:', tweets);
   res.status(200).send('OK');
 });
 
