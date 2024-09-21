@@ -51,3 +51,16 @@ app.get('/tweets', (req, res) => {
 app.listen(port, () => {
   console.log(`App running at http://localhost:${port}`);
 });
+
+app.get('/tweets/:username', (req, res) => { 
+  const { username } = req.params; 
+
+  function getUserTweets(username) {
+    return tweets.filter(tweet => tweet.username === username); 
+  }
+
+  const userTweets = getUserTweets(username);
+
+    res.send(userTweets); 
+ 
+});
