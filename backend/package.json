@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node --watch backend/app.js"
+    "dev": "node --watch app.js"
   },
   "author": "",
   "license": "ISC",
