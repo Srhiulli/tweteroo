@@ -1,10 +1,11 @@
 import express from 'express'
 import pg from 'pg'
+import jwt from 'jsonwebtoken';
 
 
 const app = express();
 const port = 3000;
-
+const SECRET_KEY = 'minha_chave_secreta';
 
 const { Client } = pg
 const PGHOST = 'ep-fragrant-smoke-a5ebmtrw.us-east-2.aws.neon.tech'
@@ -24,16 +25,23 @@ const client = new Client({
   ssl: true,
 })
 await client.connect()
-
-function isAuthenticatedUser(req, res, next) {
-  const hasJWT = true
-  if (hasJWT) {
-    return next()
-  }
-  res.status(401).json({ message: "Sem autorização" })
-}
-
 app.use(express.json());
+
+
+function hasJWTMiddleware(req, res, next) {
+  const token = req.headers['authorization'].split(' ')[1]
+  if (!token) {
+      return res.status(403).json({ message: 'Token não fornecido!' });
+  }
+  jwt.verify(token, SECRET_KEY, (err, user) => {
+      if (err) {
+        console.log(err);
+          return res.status(403).json({ message: 'Token inválido!' });
+      }
+      req.user = user; 
+  });
+  next();
+}
 
 app.get('/', (req, res) => {
   res.send('Hello World!');
@@ -70,23 +78,28 @@ app.post('/login', async (req, res) => {
       message: "Todos os campos são obrigatórios!"
     });
   }
-
   const getValidUser = async (username, password) => {
     const { rowCount, rows } = await client.query('SELECT * FROM users WHERE username = $1 AND password = $2', [username, password])
     if (rowCount > 0) {
       return rows[0]
     }
   }
-
   const validUser = await getValidUser(username, password)
   if (!validUser) {
     res.status(401).json({ message: "Usuário ou senha incorretos!" })
   }
-
-  return res.status(200).json(validUser)
+  const token = jwt.sign(
+    { id: validUser.id, username: validUser.username },
+     SECRET_KEY, 
+    { expiresIn: '1h' }
+  );
+  return res.status(200).json({
+    user: validUser, 
+    token: token
+  })
 })
 
-app.post('/tweets', async (req, res) => {
+app.post('/tweets', hasJWTMiddleware, async (req, res) => {
   const { username, tweet } = req.body;
   if (!username || !tweet) {
     return res.status(400).json({
@@ -133,7 +146,7 @@ app.get('/tweets', async (req, res) => {
   );
 });
 
-app.get('/tweets/:username', isAuthenticatedUser, async (req, res) => {
+app.get('/tweets/:username', hasJWTMiddleware, async (req, res) => {
   const { username } = req.params;
   const { rows, rowCount } = await client.query(
     `SELECT users.username, users.avatar, tweets.tweet, tweets.created_at 
