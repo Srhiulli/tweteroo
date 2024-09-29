@@ -7,12 +7,11 @@ const port = 3000;
 
 
 const { Client } = pg
- 
-const PGHOST='ep-fragrant-smoke-a5ebmtrw.us-east-2.aws.neon.tech'
-const PGDATABASE='neonTweterooDb'
-const PGUSER='neonTweterooDb_owner'
-const PGPASSWORD='GNF1xvsDj5lT'
-const ENDPOINT_ID='ep-fragrant-smoke-a5ebmtrw'
+const PGHOST = 'ep-fragrant-smoke-a5ebmtrw.us-east-2.aws.neon.tech'
+const PGDATABASE = 'neonTweterooDb'
+const PGUSER = 'neonTweterooDb_owner'
+const PGPASSWORD = 'GNF1xvsDj5lT'
+const ENDPOINT_ID = 'ep-fragrant-smoke-a5ebmtrw'
 
 
 const client = new Client({
@@ -26,73 +25,104 @@ const client = new Client({
 })
 await client.connect()
 
+function isAuthenticatedUser(req, res, next) {
+  const hasJWT = true
+  if (hasJWT) {
+    return next()
+  }
+  res.status(401).json({ message: "Sem autorização" })
+}
+
 app.use(express.json());
 
-app.get('/', (req, res) => {  
+app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
 app.post('/sign-up', async (req, res) => {
-  const { username, avatar } = req.body;
-  if (!username || !avatar) {
-    return res.status(204).json({
+  const { username, avatar, password } = req.body;
+  if (!username || !password || !avatar) {
+    return res.status(400).json({
       message: "Todos os campos são obrigatórios!"
     });
   }
   const hasUser = async (username) => {
     const { rowCount } = await client.query('SELECT * FROM users WHERE username = $1', [username]);
-    return rowCount > 0; 
+    return rowCount > 0;
   }
-  if (await hasUser(username)) return res.status(409).send("Usuário já cadastrado!");
-  const { rows }  = await client.query('INSERT INTO users (username, avatar) VALUES ($1, $2) RETURNING *', [username, avatar])
-  res.status(201).json({ 
+  if (await hasUser(username)) return res.status(400).json({ message: "Escolha outro usernmae" });
+  const { rows } = await client.query('INSERT INTO users (username, avatar, password) VALUES ($1, $2, $3) RETURNING *', [username, avatar, password])
+  res.status(201).json({
     message: "Novo usuário cadastrado com sucesso",
-    body: { 
-      username : username,
-      avatar: avatar, 
+    body: {
+      username: username,
+      avatar: avatar,
       id: rows[0].id,
       created_at: rows[0].created_at
-     }
+    }
   });
 });
+
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body
+  if (!username || !password) {
+    return res.status(400).json({
+      message: "Todos os campos são obrigatórios!"
+    });
+  }
+
+  const getValidUser = async (username, password) => {
+    const { rowCount, rows } = await client.query('SELECT * FROM users WHERE username = $1 AND password = $2', [username, password])
+    if (rowCount > 0) {
+      return rows[0]
+    }
+  }
+
+  const validUser = await getValidUser(username, password)
+  if (!validUser) {
+    res.status(401).json({ message: "Usuário ou senha incorretos!" })
+  }
+
+  return res.status(200).json(validUser)
+})
 
 app.post('/tweets', async (req, res) => {
   const { username, tweet } = req.body;
   if (!username || !tweet) {
-    return res.status(204).json({
+    return res.status(400).json({
       message: "Todos os campos são obrigatórios!"
     });
   }
   const getUser = async (username) => {
     const { rowCount, rows } = await client.query(
-      'SELECT * FROM users WHERE username = $1', 
+      'SELECT * FROM users WHERE username = $1',
       [username]
     )
     return { exists: rowCount > 0, user: rows[0] };
-    }
+  }
   const userInfo = await getUser(username);
   if (!userInfo.exists) {
     return res.status(409).json({
       message: "Usuário não encontrado!",
     });
-  } 
-    const userData = userInfo.user
-   await client.query(
-      'INSERT INTO tweets (user_id, tweet) VALUES ($1, $2)',
-      [userData.id, tweet]
-    );
-    return res.status(201).json({ 
-      message: "Tweet enviado com sucesso!", 
-      body: {
-        username: username,
-        tweet: tweet,
-        avatar: userData.avatar, 
-      }
-    });
+  }
+  const userData = userInfo.user
+  await client.query(
+    'INSERT INTO tweets (user_id, tweet) VALUES ($1, $2)',
+    [userData.id, tweet]
+  );
+  return res.status(201).json({
+    message: "Tweet enviado com sucesso!",
+    body: {
+      username: username,
+      tweet: tweet,
+      avatar: userData.avatar,
+    }
+  });
 });
 
-app.get('/tweets', async  (req, res) => { 
-  const {rows} = await client.query('SELECT users.username, users.avatar, tweets.tweet, tweets.created_at FROM tweets JOIN users ON tweets.user_id = users.id ORDER BY tweets.created_at DESC LIMIT 10');
+app.get('/tweets', async (req, res) => {
+  const { rows } = await client.query('SELECT users.username, users.avatar, tweets.tweet, tweets.created_at FROM tweets JOIN users ON tweets.user_id = users.id ORDER BY tweets.created_at DESC LIMIT 10');
   res.json(
     rows.map(row => ({
       username: row.username,
@@ -103,10 +133,8 @@ app.get('/tweets', async  (req, res) => {
   );
 });
 
-
-
-app.get('/tweets/:username', async (req, res) => { 
-  const { username } = req.params; 
+app.get('/tweets/:username', isAuthenticatedUser, async (req, res) => {
+  const { username } = req.params;
   const { rows, rowCount } = await client.query(
     `SELECT users.username, users.avatar, tweets.tweet, tweets.created_at 
      FROM tweets 
@@ -114,9 +142,9 @@ app.get('/tweets/:username', async (req, res) => {
      WHERE users.username ILIKE $1 
      ORDER BY tweets.created_at DESC 
      LIMIT 10`,
-    [username] 
+    [username]
   );
-if (rowCount === 0) return res.status(404).json({ message : "Usuário ou tweets não encontrados!"})
+  if (rowCount === 0) return res.status(404).json({ message: "Usuário ou tweets não encontrados!" })
   res.status(200).json(
     rows.map(row => ({
       username: row.username,
