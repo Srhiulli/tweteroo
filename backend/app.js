@@ -1,6 +1,7 @@
 import express from 'express'
 import pg from 'pg'
 import jwt from 'jsonwebtoken';
+import cors from 'cors';
 
 
 const app = express();
@@ -26,7 +27,7 @@ const client = new Client({
 })
 await client.connect()
 app.use(express.json());
-
+app.use(cors());
 
 function hasJWTMiddleware(req, res, next) {
   const token = req.headers['authorization'].split(' ')[1]
@@ -58,7 +59,7 @@ app.post('/sign-up', async (req, res) => {
     const { rowCount } = await client.query('SELECT * FROM users WHERE username = $1', [username]);
     return rowCount > 0;
   }
-  if (await hasUser(username)) return res.status(400).json({ message: "Escolha outro usernmae" });
+  if (await hasUser(username)) return res.status(400).json({ message: "Username em uso" });
   const { rows } = await client.query('INSERT INTO users (username, avatar, password) VALUES ($1, $2, $3) RETURNING *', [username, avatar, password])
   res.status(201).json({
     message: "Novo usuário cadastrado com sucesso",
@@ -88,6 +89,7 @@ app.post('/login', async (req, res) => {
   if (!validUser) {
     res.status(401).json({ message: "Usuário ou senha incorretos!" })
   }
+  console.log(validUser);
   const token = jwt.sign(
     { id: validUser.id, username: validUser.username },
      SECRET_KEY, 
