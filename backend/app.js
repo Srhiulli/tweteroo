@@ -1,35 +1,34 @@
 import express from 'express'
-import pg from 'pg'
+import pkg from "pg";
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import dotenv from "dotenv";
 
+dotenv.config();
+console.log("Database URL:", process.env.DATABASE_URL); 
 
 const app = express();
 const port = 3000;
 const SECRET_KEY = 'minha_chave_secreta';
 
-const { Client } = pg
-const PGHOST = 'ep-fragrant-smoke-a5ebmtrw.us-east-2.aws.neon.tech'
-const PGDATABASE = 'neonTweterooDb'
-const PGUSER = 'neonTweterooDb_owner'
-const PGPASSWORD = 'GNF1xvsDj5lT'
-const ENDPOINT_ID = 'ep-fragrant-smoke-a5ebmtrw'
-
+const { Client } = pkg;
 
 const client = new Client({
-  host: PGHOST,
-  database: PGDATABASE,
-  user: PGUSER,
-  password: PGPASSWORD,
-  endpoint: ENDPOINT_ID,
-  port: 5432,
-  ssl: true,
+  host: process.env.PGHOST,
+  database: process.env.PGDATABASE,
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  port: process.env.PGPORT || 5432, 
+  ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false, 
 })
+
 await client.connect()
 app.use(express.json());
 app.use(cors());
+app.use(cookieParser())
 
-function hasJWTMiddleware(req, res, next) {
+const hasJWTMiddleware = (req, res, next) => {
   const token = req.headers['authorization'].split(' ')[1]
   if (!token) {
       return res.status(403).json({ message: 'Token não fornecido!' });
@@ -89,12 +88,16 @@ app.post('/login', async (req, res) => {
   if (!validUser) {
     res.status(401).json({ message: "Usuário ou senha incorretos!" })
   }
-  console.log(validUser);
   const token = jwt.sign(
     { id: validUser.id, username: validUser.username },
      SECRET_KEY, 
     { expiresIn: '1h' }
   );
+  res.cookie('token', token, {
+    httpOnly: true,    // Impede que o cookie seja acessível via JavaScript
+    secure: true,      // Certifique-se de usar HTTPS em produção
+    sameSite: 'strict' // Previne ataques CSRF
+  });
   return res.status(200).json({
     user: validUser, 
     token: token

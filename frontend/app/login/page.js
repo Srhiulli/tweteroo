@@ -22,9 +22,6 @@ const Login = () => {
       body: JSON.stringify({ username, password })
     })
       .then(response => response.json())
-      .then(response => 
-
-      )
       .catch(err => console.error(err));
   }
   return (
@@ -40,7 +37,7 @@ const Login = () => {
             <Label htmlFor="password">Senha</Label>
             <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" id="password" placeholder="Digite sua senha" required />
           </div>
-          <Button type="submit" className="w-full">
+          <Button onClick={handleLoginSuccess} type="submit" className="w-full">
             Entrar
           </Button>
         </form>
