@@ -121,4 +121,4 @@ Este projeto é licenciado sob a MIT License - veja o arquivo LICENSE para detal
 
 ## Autor
 
-	•	Sarah Iulli 
+Sarah Iulli 
