@@ -102,14 +102,14 @@ A aplicação do front-end estará disponível em http://localhost:3000.
 
 ### Usuários
 
-	•	POST /sign-up: Cadastra um novo usuário.
-	•	POST /login: Realiza login do usuário.
+- POST /sign-up: Cadastra um novo usuário.
+- POST /login: Realiza login do usuário.
 
 ### Tweets
 
-	•	POST /tweets: Envia um novo tweet (requer autenticação).
-	•	GET /tweets: Retorna os últimos 10 tweets.
-	•	GET /tweets/:username: Retorna os tweets de um usuário específico (requer autenticação).
+- POST /tweets: Envia um novo tweet (requer autenticação).
+- GET /tweets: Retorna os últimos 10 tweets.
+- GET /tweets/:username: Retorna os tweets de um usuário específico (requer autenticação).
 
 ## Contribuição
 
