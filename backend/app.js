@@ -6,10 +6,9 @@ import cookieParser from 'cookie-parser';
 import dotenv from "dotenv";
 
 dotenv.config();
-console.log("Database URL:", process.env.DATABASE_URL); 
 
 const app = express();
-const port = 3000;
+const port = 3001;
 const SECRET_KEY = 'minha_chave_secreta';
 
 const { Client } = pkg;
@@ -25,7 +24,7 @@ const client = new Client({
 
 await client.connect()
 app.use(express.json());
-app.use(cors());
+app.use(cors({origin:'*'}));
 app.use(cookieParser())
 
 const hasJWTMiddleware = (req, res, next) => {
@@ -78,7 +77,10 @@ app.post('/login', async (req, res) => {
       message: "Todos os campos são obrigatórios!"
     });
   }
+
   const getValidUser = async (username, password) => {
+    console.log(username, password, 'SELECT * FROM users WHERE username = $1 AND password = $2', [username, password] )
+
     const { rowCount, rows } = await client.query('SELECT * FROM users WHERE username = $1 AND password = $2', [username, password])
     if (rowCount > 0) {
       return rows[0]
@@ -86,22 +88,26 @@ app.post('/login', async (req, res) => {
   }
   const validUser = await getValidUser(username, password)
   if (!validUser) {
-    res.status(401).json({ message: "Usuário ou senha incorretos!" })
+    return res.status(401).json({ message: "Usuário ou senha incorretos!" })
   }
+
   const token = jwt.sign(
     { id: validUser.id, username: validUser.username },
      SECRET_KEY, 
     { expiresIn: '1h' }
   );
+
   res.cookie('token', token, {
     httpOnly: true,    // Impede que o cookie seja acessível via JavaScript
-    secure: true,      // Certifique-se de usar HTTPS em produção
-    sameSite: 'strict' // Previne ataques CSRF
-  });
+    secure: process.env.NODE_ENV === 'production',   // Certifique-se de usar HTTPS em produção
+    sameSite: 'strict', // Previne ataques CSRF
+    maxAge: 3600000 
+  }); 
+
   return res.status(200).json({
-    user: validUser, 
+    message: "Login realizado com sucesso!",
     token: token
-  })
+  });
 })
 
 app.post('/tweets', hasJWTMiddleware, async (req, res) => {
