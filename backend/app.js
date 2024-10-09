@@ -24,11 +24,15 @@ const client = new Client({
 
 await client.connect()
 app.use(express.json());
-app.use(cors({origin:'*'}));
+app.use(cors({
+  origin:'http://localhost:3000',
+  credentials: true
+}));
 app.use(cookieParser())
 
 const hasJWTMiddleware = (req, res, next) => {
-  const token = req.headers['authorization'].split(' ')[1]
+  console.log(req);
+  const token = req.headers['authorization']?.split(' ')[1]
   if (!token) {
       return res.status(403).json({ message: 'Token não fornecido!' });
   }
@@ -79,7 +83,6 @@ app.post('/login', async (req, res) => {
   }
 
   const getValidUser = async (username, password) => {
-    console.log(username, password, 'SELECT * FROM users WHERE username = $1 AND password = $2', [username, password] )
 
     const { rowCount, rows } = await client.query('SELECT * FROM users WHERE username = $1 AND password = $2', [username, password])
     if (rowCount > 0) {

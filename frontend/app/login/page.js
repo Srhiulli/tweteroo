@@ -11,19 +11,16 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  // function handleLoginSuccess() {
-  //   window.location.href = '/tweets';
-  // }
-
   function handleSubmit(event) {
     event.preventDefault();
     fetch('http://localhost:3001/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password }),
+      credentials: 'include'
     })
       .then(response => response.json())
-    
+
       .catch(err => console.error(err));
   }
   return (
@@ -39,7 +36,7 @@ const Login = () => {
             <Label htmlFor="password">Senha</Label>
             <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" id="password" placeholder="Digite sua senha" required />
           </div>
-          <Button onClick={handleSubmit}   type="submit" className="w-full">
+          <Button onClick={handleSubmit} type="submit" className="w-full">
             Entrar
           </Button>
         </form>
