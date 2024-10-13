@@ -112,7 +112,7 @@ app.post('/login', async (req, res) => {
   });
 })
 
-app.post('/tweets', hasJWTMiddleware, async (req, res) => {
+app.post('/tweets', async (req, res) => {
   const { username, tweet } = req.body;
   if (!username || !tweet) {
     return res.status(400).json({
@@ -180,6 +180,22 @@ app.get('/tweets/:username', hasJWTMiddleware, async (req, res) => {
     }))
   )
 })
+
+app.get('/api/currentUser', (req, res) => {
+  const token = req.cookies['token']
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Token não fornecido' });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    res.json({ user: decoded });
+  });
+});
+
 
 app.listen(port, () => {
   console.log(`App running at http://localhost:${port}`);

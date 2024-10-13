@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useState, useEffect, useRef } from 'react';
+import Cookies from 'js-cookie';
 
 const TweetInput = () => {
   const [username, setUsername] = useState('');
   const [tweet, setTweet] = useState('');
-  const [tweets, setTweets] = useState([]);
-  const tweetsEndRef = useRef(null); 
+  const [tweets, setTweets] = useState([]); 
+  const [currentUsername, setCurrentUsername] = useState(''); 
+  const tweetsEndRef = useRef(null);
 
   useEffect(() => {
     if (tweetsEndRef.current) {
@@ -16,22 +18,50 @@ const TweetInput = () => {
     }
   }, [tweets]);
 
+  useEffect(() => {
+    getUsernameCurrentUser();
+  }, []);
+
+  function getUsernameCurrentUser() {
+    fetch('http://localhost:3001/api/currentUser', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${Cookies.get('token')}`,
+      },
+      credentials: 'include'
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.user) {
+          setCurrentUsername(data.user.username);
+        } else {
+          console.log('Usuário não está logado');
+        }
+      })
+      .catch(err => console.error(err));
+  }
+
   function handleSubmit(event) {
     event.preventDefault();
-    fetch('http://localhost:3000/tweets', {
+    fetch('http://localhost:3001/tweets', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'insomnia/9.3.2'
       },
-      body: JSON.stringify({ username, tweet })
+      body: JSON.stringify({ username: currentUsername, tweet })
     })
-      .then(response => response.json())
-      .then(data => {
-        setTweets([...tweets, { username, tweet }]);
-        setTweet('');
+      .then(response => {
+        return response.json().catch(err => {
+          throw new Error('A resposta não está em formato JSON');
+        })
       })
-      .catch(err => console.error(err));
+
+        .then(data => {
+        setTweets([...tweets, { currentUsername, tweet }]); 
+        setTweet(''); 
+      })
+      .catch(err => console.error(err)); 
   }
 
   return (
@@ -41,29 +71,22 @@ const TweetInput = () => {
         <div className="flex flex-col space-y-2">
           {tweets.map((tweet, index) => (
             <div key={index} className="bg-gray-200 p-2 rounded-lg shadow">
-              <strong>{tweet.username}</strong>: {tweet.tweet}
+              <strong>{tweet.currentUsername}</strong>: {tweet.tweet}
             </div>
           ))}
-          <div ref={tweetsEndRef} /> 
+          <div ref={tweetsEndRef} />
         </div>
       </div>
-      
+
       <Card className="p-6 shadow-lg mt-4">
         <h1 className="text-2xl font-bold text-center mb-4">Envie um Tweet</h1>
+        <h1>{currentUsername}</h1>
         <form onSubmit={handleSubmit} className="flex flex-col">
           <Input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={tweet} 
+            onChange={(e) => setTweet(e.target.value)} 
             type="text"
-            placeholder="Digite seu username"
-            className="mb-4"
-            required
-          />
-          <Input
-            value={tweet}
-            onChange={(e) => setTweet(e.target.value)}
-            type="text"
-            placeholder="O que você está pensando?"
+            placeholder="Escreva o que está pensando"
             className="mb-4"
             required
           />
