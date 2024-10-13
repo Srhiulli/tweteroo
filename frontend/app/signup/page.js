@@ -19,7 +19,6 @@ const SignUp = () => {
       body: JSON.stringify({ username, password, avatar: 'https://avatar.iran.liara.run/public' })
     })
       .then(response => response.json())
-      .then(response => console.log(response))
       .catch(err => console.error(err));
   }
 

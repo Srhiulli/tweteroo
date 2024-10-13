@@ -7,9 +7,11 @@ import { useState } from 'react';
 
 
 
+
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -20,8 +22,9 @@ const Login = () => {
       credentials: 'include'
     })
       .then(response => response.json())
-
-      .catch(err => console.error(err));
+      .then(data => {
+        window.location.href = '/tweets';
+      })
   }
   return (
     <div className="flex items-center justify-center h-screen bg-gray-100">

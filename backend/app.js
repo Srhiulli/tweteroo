@@ -31,7 +31,6 @@ app.use(cors({
 app.use(cookieParser())
 
 const hasJWTMiddleware = (req, res, next) => {
-  console.log(req);
   const token = req.headers['authorization']?.split(' ')[1]
   if (!token) {
       return res.status(403).json({ message: 'Token não fornecido!' });
